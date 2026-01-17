@@ -1,52 +1,70 @@
-st.text_input("Jenis Kelas", data.get('JENIS KELAS', '-'), disabled=True)
-                        with col2:
-                            st.text_input("Tarikh Masuk Sekolah", data.get('TARIKH MASUK SEKOLAH', '-'), disabled=True)
-                            st.text_input("Tarikh Masuk Kelas", data.get('TARIKH MASUK KELAS', '-'), disabled=True)
-                        
-                        st.metric(label="Bilangan Tanggungan", value=data.get('TANGGUNGAN', '0'))
+import streamlit as st
+import pandas as pd
 
-                    # TAB 3: IBU BAPA / PENJAGA
-                    with tab3:
-                        st.subheader("Maklumat Penjaga 1")
-                        c1, c2, c3, c4 = st.columns(4)
-                        c1.text_input("Nama Penjaga 1", data.get('PENJAGA 1', '-'), disabled=True)
-                        c2.text_input("Hubungan (1)", data.get('HUBUNGAN PENJAGA 1', '-'), disabled=True)
-                        c3.text_input("Pekerjaan (1)", data.get('PEKERJAAN PENJAGA 1', '-'), disabled=True)
-                        c4.text_input("No. Tel (1)", data.get('NO. TEL. BIMBIT PENJAGA 1', '-'), disabled=True)
+# Tetapan Halaman
+st.set_page_config(page_title="Dashboard Maklumat Pelajar", layout="wide", page_icon="🎓")
 
-                        st.markdown("---")
-                        st.subheader("Maklumat Penjaga 2")
-                        c1, c2, c3, c4 = st.columns(4)
-                        c1.text_input("Nama Penjaga 2", data.get('PENJAGA 2', '-'), disabled=True)
-                        c2.text_input("Hubungan (2)", data.get('HUBUNGAN PENJAGA 2', '-'), disabled=True)
-                        c3.text_input("Pekerjaan (2)", data.get('PEKERJAAN PENJAGA 2', '-'), disabled=True)
-                        c4.text_input("No. Tel (2)", data.get('NO. TEL. BIMBIT PENJAGA 2', '-'), disabled=True)
+# URL Google Sheet
+DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDjXlAepJEOgEoAZD2_ab-xed3AU6LyLkY-ixEqlRx3h2CT224Jd7ww4e0qC9-WQ/pub?output=csv"
 
-                    # TAB 4: ALAMAT
-                    with tab4:
-                        st.subheader("Lokasi Tempat Tinggal")
-                        st.text_area("Alamat Penuh", data.get('ALAMAT', '-'), disabled=True)
-                        
-                        c1, c2, c3, c4 = st.columns(4)
-                        c1.text_input("Poskod", data.get('POSKOD', '-'), disabled=True)
-                        c2.text_input("Bandar", data.get('BANDAR', '-'), disabled=True)
-                        c3.text_input("Daerah", data.get('DAERAH', '-'), disabled=True)
-                        c4.text_input("Negeri", data.get('NEGERI', '-'), disabled=True)
+@st.cache_data
+def load_data():
+    try:
+        df = pd.read_csv(DATA_URL, dtype=str)
+        df.columns = df.columns.str.strip()
+        df = df.fillna("-")
+        return df
+    except Exception as e:
+        st.error(f"Ralat: {e}")
+        return None
 
-                else:
-                    st.error("❌ Tiada rekod dijumpai. Sila pastikan NO. IC dimasukkan dengan betul.")
-            else:
-                st.warning("⚠️ Sila masukkan NO. IC terlebih dahulu.")
+def main():
+    st.title("🎓 Sistem Maklumat Pelajar")
+    st.markdown("---")
+
+    df = load_data()
+
+    if df is not None:
+        st.sidebar.header("🔐 Carian Pelajar")
+        ic_input = st.sidebar.text_input("Masukkan No. IC (Tanpa Sengkang)", max_chars=12)
+        search_btn = st.sidebar.button("Semak")
         
-        else:
-            # Paparan awal sebelum user login
-            st.info("👋 Selamat Datang. Sila masukkan No. Kad Pengenalan di sebelah kiri untuk melihat maklumat pelajar.")
-            st.markdown("""
-            Panduan Pengguna:
-            1. Masukkan No. IC pada ruang di *sidebar* (kiri).
-            2. Tekan butang 'Semak Maklumat'.
-            3. Maklumat akan dipaparkan jika rekod wujud dalam pangkalan data.
-            """)
+        if search_btn:
+            if ic_input:
+                pelajar = df[df['NO. IC'] == ic_input]
+                if not pelajar.empty:
+                    data = pelajar.iloc[0]
+                    st.success(f"Rekod Ditemui: {data.get('NAMA', '-')}")
+                    
+                    tab1, tab2, tab3 = st.tabs(["Peribadi", "Sekolah", "Ibu Bapa"])
+                    
+                    with tab1:
+                        st.subheader("Maklumat Peribadi")
+                        c1, c2 = st.columns(2)
+                        c1.text_input("Nama", data.get('NAMA', '-'), disabled=True)
+                        c2.text_input("No. IC", data.get('NO. IC', '-'), disabled=True)
+                        c1.text_input("Tarikh Lahir", data.get('TARIKH LAHIR', '-'), disabled=True)
+                        c2.text_input("Jantina", data.get('JANTINA', '-'), disabled=True)
 
-if name == "main":
+                    with tab2:
+                        st.subheader("Maklumat Sekolah")
+                        c1, c2 = st.columns(2)
+                        c1.text_input("Kelas", data.get('NAMA KELAS', '-'), disabled=True)
+                        c2.text_input("Tarikh Masuk", data.get('TARIKH MASUK SEKOLAH', '-'), disabled=True)
+
+                    with tab3:
+                        st.subheader("Maklumat Penjaga")
+                        st.text_input("Nama Penjaga 1", data.get('PENJAGA 1', '-'), disabled=True)
+                        st.text_input("No. Tel Penjaga 1", data.get('NO. TEL. BIMBIT PENJAGA 1', '-'), disabled=True)
+                        st.divider()
+                        st.text_input("Nama Penjaga 2", data.get('PENJAGA 2', '-'), disabled=True)
+                        st.text_input("No. Tel Penjaga 2", data.get('NO. TEL. BIMBIT PENJAGA 2', '-'), disabled=True)
+                else:
+                    st.error("Tiada rekod dijumpai.")
+            else:
+                st.warning("Sila masukkan No. IC.")
+        else:
+            st.info("Sila masukkan No. IC di bahagian kiri (sidebar) untuk mula.")
+
+if __name__ == "__main__":
     main()
